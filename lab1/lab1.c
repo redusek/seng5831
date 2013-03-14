@@ -1,10 +1,11 @@
+#define ECHO2LCD
+
+#include <pololu/orangutan.h>
+
 #include "LEDs.h"
 #include "timer.h"
 #include "usart.h"
 #include "menu.h"
-
-#include <avr/io.h>         //gives us names for registers
-#include <avr/interrupt.h>
 
 //Gives us uintX_t (e.g. uint32_t - unsigned 32 bit int)
 //On the ATMega128 int is actually 16 bits, so it is better to use
@@ -47,45 +48,52 @@ int main(void) {
 	// You will construct this program in pieces.
 	// First, establish WCET analysis on a for loop to use for timing.
 	// Use the for loop to blink the red LED.
-	// Next, set up a software timer, and use that to "schedule" the blink
+	// Next, set up a system 1 ms software timer, and use that to "schedule" the blink
 	// inside a cyclic executive.
 	//
-	// Blink the yellow LED using a separate timer with a different resolution
-	// from the red LED. Blink the LED inside the ISR.
+	// Blink the yellow LED using a separate timer with a 100ms resolution.
+	// Blink the LED inside the ISR.
 	//
 	// Finally, blink the green LED by toggling the output on a pin using
-	// a Compare Match. 
+	// a Compare Match. This is the creation of a PWM signal with a very long period.
 	//	
 	// --------------------------------------------------------------
 
 	int i;
-	
-	//communication: initialize serial port 1, and open up stdout/stdin
-	init_USART1();
-	fdevopen(USART1_stdio_send, USART1_stdio_get);
 
-	// initialize everything else
+	// Used to print to serial comm window
+	char tempBuffer[32];
+	int length = 0;
+	
+	// Ininitialization here.
+	lcd_init_printf();	// required if we want to use printf() for LCD printing
 	init_LEDs();
 	init_timers();
-	init_menu();
+	init_menu();	// this is initialization of serial comm through USB
 	
+	clear();	// clear the LCD
+
 	//enable interrupts
 	sei();
-		    
+	
 	while (1) {
-
 		/* BEGIN with a simple toggle using for-loops. No interrupt timers */
 
 		// toggle the LED. Increment a counter.
 		LED_TOGGLE(RED);
 		G_red_toggles++;
-		printf("%d ",G_red_toggles);
+		length = sprintf( tempBuffer, "R toggles %d\r\n", G_red_toggles );
+		print_usb( tempBuffer, length );
+#ifdef ECHO2LCD
+		lcd_goto_xy(0,0);
+		printf("R:%d ",G_red_toggles);
+#endif
 
 		// create a for-loop to kill approximately 1 second
 		for (i=0;i<100;i++) {
 			WAIT_10MS;
 		}
-
+				
 		// ONCE THAT WORKS, Comment out the above and use a software timer
 		//	to "schedule" the RED LED toggle.
 /*
@@ -95,12 +103,12 @@ int main(void) {
 			G_release_red = 0; 
 		}
 */
-/*
+
 		// Whenever you are ready, add in the menu task.
 		// Think of this as an external interrupt "releasing" the task.
-		if(USART1_input_ready()) {
-			menu();
-		}
+/*
+		serial_check();
+		check_for_new_bytes_received();
 */
 					
 	} //end while loop

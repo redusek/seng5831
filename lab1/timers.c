@@ -111,7 +111,7 @@ void init_timers() {
 //INTERRUPT HANDLERS
 > ISR(XXXX) {
 
-	// This is the Interrupt Service Routine for Timer0
+	// This is the Interrupt Service Routine for Timer0 (10ms clock used for scheduling red).
 	// Each time the TCNT count is equal to the OCR0 register, this interrupt is "fired".
 
 	// Increment ticks

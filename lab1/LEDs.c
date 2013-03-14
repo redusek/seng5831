@@ -34,6 +34,7 @@ void init_LEDs() {
 	// Turn LEDs on to make sure they are working
 >
 
+	// leave on for 2 seconds
 	for (i=0;i<200;i++)
 		WAIT_10MS;
 
@@ -108,7 +109,7 @@ void set_toggle(char color, int ms) {
 	// Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
 	// At creation of this file, it was initialized to interrupt every 100ms (10Hz).
 	//
-	// Increment ticks. If time, toggle YELLOW and increment toggle counter.
+	// Increment ticks. If it is time, toggle YELLOW and increment toggle counter.
 >
 >
 >
