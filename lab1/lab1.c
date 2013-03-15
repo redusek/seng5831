@@ -4,7 +4,6 @@
 
 #include "LEDs.h"
 #include "timer.h"
-#include "usart.h"
 #include "menu.h"
 
 //Gives us uintX_t (e.g. uint32_t - unsigned 32 bit int)
@@ -65,7 +64,7 @@ int main(void) {
 	char tempBuffer[32];
 	int length = 0;
 	
-	// Ininitialization here.
+	// Initialization here.
 	lcd_init_printf();	// required if we want to use printf() for LCD printing
 	init_LEDs();
 	init_timers();

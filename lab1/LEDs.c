@@ -1,6 +1,5 @@
 #include "LEDs.h"
 #include "timer.h"
-#include "usart.h"
 
 #include <avr/io.h>
 #include <stdio.h>

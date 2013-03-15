@@ -1,5 +1,4 @@
 #include "timer.h"
-#include "usart.h"
 #include "LEDs.h"
 
 #include <avr/interrupt.h>
@@ -45,7 +44,7 @@ void init_timers() {
 	// Set-up of interrupt for toggling yellow LEDs. 
 	// This task is "self-scheduled" in that it runs inside the ISR that is 
 	// generated from a COMPARE MATCH of 
-	//      Timer/Counter 1 to OCR3A.
+	//      Timer/Counter 3 to OCR3A.
 	// Obviously, we could use a single timer to schedule everything, but we are experimenting here!
 	// THE ISR for this is in the LEDs.c file
 
@@ -98,7 +97,7 @@ void init_timers() {
 >	printf("Initializing green clock to freq %dHz (period %d ms)\n",(int)(XXXX),G_green_period);	
 
 	// A match to this will toggle the green LED.
-	// Regardless of its value (provided it is less than OCR3A), it will match at the frequency of timer 3.
+	// Regardless of its value (provided it is less than OCR1A), it will match at the frequency of timer 1.
 	OCR1B = 1;
 
 	//Enable output compare match interrupt on timer 1B
