@@ -19,7 +19,8 @@ char send_buffer[32];
 // A generic function for whenever you want to print to your serial comm window.
 // Provide a string and the length of that string. My serial comm likes "\r\n" at 
 // the end of each string (be sure to include in length) for proper linefeed.
-void print_usb( char *buffer, int n ) {
+void print_usb( char *buffer, int n ) 
+{
 	serial_send( USB_COMM, buffer, n );
 	wait_for_sending_to_finish();
 }	
@@ -27,8 +28,8 @@ void print_usb( char *buffer, int n ) {
 //------------------------------------------------------------------------------------------
 // Initialize serial communication through USB and print menu options
 // This immediately readies the board for serial comm
-void init_menu() {
-	
+void init_menu() 
+{	
 	char printBuffer[32];
 	
 	// Set the baud rate to 9600 bits per second.  Each byte takes ten bit
@@ -88,7 +89,7 @@ void process_received_string(const char* buffer)
 		// change toggle frequency for <color> LED
 		case 'T':
 		case 't':
-// >			//set_toggle(color,value);
+			set_toggle(color,value);
 			break; 
 		// print counter for <color> LED 
 		case 'P':
