@@ -6,6 +6,7 @@
 // GLOBALS
 extern uint32_t G_green_ticks;
 extern uint32_t G_yellow_ticks;
+extern uint32_t G_yellow_toggles;
 extern uint32_t G_ms_ticks;
 
 extern uint16_t G_red_period;
@@ -22,12 +23,12 @@ void init_timers()
 
 	// SET appropriate bits in TCCR....
 
-	// Using CTC mode with OCR0 for TOP. This is mode X, thus WGM0/1/0 = .
+	// Using CTC mode with OCR0 for TOP. This is mode 4, thus WGM0/1/0 = .
 	TCCR0A |= ( 1 << WGM01 );  // turn on WGM01
 	TCCR0A &= ~( 1 << WGM00 );  // turn off WGM00
 	TCCR0B &= ~( 1 << WGM02 );  // turn off WGM02
 	
-	// Using pre-scaler XX. This is CS0/2/1/0 =
+	// Using pre-scaler 256. This is CS0/2/1/0 = 100
 	TCCR0B |= ( 1 << CS02 );
 	TCCR0B &= ~( 1 << CS01 );
 	TCCR0B &= ~( 1 << CS00 );
@@ -51,29 +52,38 @@ void init_timers()
 	// generated from a COMPARE MATCH of 
 	//      Timer/Counter 3 to OCR3A.
 	// Obviously, we could use a single timer to schedule everything, but we are experimenting here!
-	// THE ISR for this is in the LEDs.c file
+	// THE ISR for this is below
 
-/*
 	// SET appropriate bits in TCCR ...
 
-	// Using CTC mode with OCR3A for TOP. This is mode XX, thus WGM1/3210 = .
->
+	// Using CTC mode with OCR3A for TOP. This is mode 4, thus WGM3/3210 = 0010.
 	
-	// Using pre-scaler XX. This is CS1_210 = 
->
+	TCCR3A &= ~( 1 << WGM30 );  // turn off WGM30
+	TCCR3A &= ~( 1 << WGM31 );  // turn off WGM31
+	TCCR3B |= ( 1 << WGM32 );  // turn on WGM32
+	TCCR3B &= ~( 1 << WGM33 );  // turn off WGM33
+	
+	// Using pre-scaler 64. This is CS3/2/1/0 = 011
+	TCCR3B &= ~( 1 << CS32 );
+	TCCR3B |= ( 1 << CS31 );
+	TCCR3B |= ( 1 << CS30 );
 
 
 	// Interrupt Frequency: 10 = f_IO / (prescaler*OCR3A)
 	// Set OCR3A appropriately for TOP to generate desired frequency using Y_TIMER_RESOLUTION (100 ms).
 	// NOTE: This is not the toggle frequency, rather a tick frequency used to time toggles.
->	OCR3A = 
->	printf("Initializing yellow clock to freq %dHz (period %d ms)\n",(int)(XXX),Y_TIMER_RESOLUTION);	
+	OCR3A = 31250;
+	printf("Initializing yellow clock to freq %dHz (period %d ms)\n",(int)(10),Y_TIMER_RESOLUTION);	
 
 	//Enable output compare match interrupt on timer 3A
->
+	unsigned char sreg = SREG;
+	cli();
+	TCNT3=0; // we want to start off with a zero counter
+	SREG = sreg;
+	TIMSK3 = ( 1<<OCIE3A ); // enable interrupt on TCNT0=OCR0A
 
 	G_yellow_ticks = 0;
-*/
+	
 /*
 	//--------------------------- GREEN ----------------------------------//
 	// Set-up of interrupt for toggling green LED. 
@@ -122,23 +132,36 @@ ISR( TIMER0_COMPA_vect )
 		G_release_red = 1;
 }
 
-/* 
 // INTERRUPT Names are defined in iom1284p.h
 
 // INTERRUPT HANDLER for yellow LED
-> ISR(XXXX) {
-
+ISR( TIMER3_COMPA_vect ) 
+{
 	// This the Interrupt Service Routine for Toggling the yellow LED.
 	// Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
 	// At creation of this file, it was initialized to interrupt every 100ms (10Hz).
 	//
+	
+	char tempBuffer[32];
+	int length = 0;
+	
 	// Increment ticks. If it is time, toggle YELLOW and increment toggle counter.
->
->
->
+	// period is in ms, the ISR is fired once every 100 ms... 
+	if( ( ++G_yellow_ticks % ( G_yellow_period/Y_TIMER_RESOLUTION ) ) == 0 )
+	{
+		LED_TOGGLE(YELLOW);
+		++G_yellow_toggles;
+		
+		lcd_goto_xy( 0, 0 );
+		
+		length = sprintf( tempBuffer, "y%lu: %lu\r\n", G_yellow_toggles, G_yellow_ticks );
+		print_usb( tempBuffer, length );
+		print( tempBuffer );
+	}
 
 }
 
+/*
 // INTERRUPT HANDLER for green LED
 > ISR(XXXX) {
 

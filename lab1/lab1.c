@@ -113,11 +113,11 @@ int main(void)
 		uint32_t elapsed = after - before;
 
 		lcd_goto_xy( 0, 1 );
-		print( "t" );
+		print( "r" );
 		print_long( G_red_toggles );
 		print( ": ");
 		print_long( elapsed );
-		length = sprintf( tempBuffer, "t%d: %d\r\n", G_red_toggles, elapsed );
+		length = sprintf( tempBuffer, "r%d: %d\r\n", G_red_toggles, elapsed );
 		print_usb( tempBuffer, length );
 		
 		*/
@@ -132,13 +132,10 @@ int main(void)
 			G_release_red = 0;
 			
 			lcd_goto_xy( 0, 1 );
-			print( "t" );
-			print_long( G_red_toggles );
-			print( ": " );
-			print_long( G_ms_ticks );
 			
-			length = sprintf( tempBuffer, "t%lu: %lu\r\n", G_red_toggles, G_ms_ticks );
+			length = sprintf( tempBuffer, "r%lu: %lu\r\n", G_red_toggles, G_ms_ticks );
 			print_usb( tempBuffer, length );
+			print( tempBuffer );
 		
 		}
 
