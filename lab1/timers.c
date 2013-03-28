@@ -7,6 +7,7 @@
 extern uint32_t G_green_ticks;
 extern uint32_t G_yellow_ticks;
 extern uint32_t G_yellow_toggles;
+extern uint32_t G_green_toggles;
 extern uint32_t G_ms_ticks;
 
 extern uint16_t G_red_period;
@@ -17,6 +18,10 @@ extern uint16_t G_release_red;
 
 void init_timers() 
 {
+	// Used to print to serial comm window
+	char tempBuffer[128];
+	int length = 0;
+
 	// -------------------------  RED --------------------------------------//
 	// Software Clock Using Timer/Counter 0.
 	// THE ISR for this is below.
@@ -35,7 +40,7 @@ void init_timers()
 	
 	// Software Clock Interrupt Frequency: 1000 = f_IO / (prescaler*OCR0)
 	// Set OCR0 appropriately for TOP to generate desired frequency of 1KHz
-	printf("Initializing software clock to freq 1000Hz (period 1 ms)\n");
+	print_usb( "Initializing software clock to freq 1000Hz (period 1 ms)\r\n", 58);
 	OCR0A = 78;  // we want 1000 ticks per second
 
 	//Enable output compare match interrupt on timer 0A
@@ -56,35 +61,30 @@ void init_timers()
 
 	// SET appropriate bits in TCCR ...
 
-	// Using CTC mode with OCR3A for TOP. This is mode 4, thus WGM3/3210 = 0010.
-	
-	TCCR3A &= ~( 1 << WGM30 );  // turn off WGM30
-	TCCR3A &= ~( 1 << WGM31 );  // turn off WGM31
-	TCCR3B |= ( 1 << WGM32 );  // turn on WGM32
+	// Using CTC mode with OCR3A for TOP. This is mode 4, thus WGM3/3210 = 0100.
 	TCCR3B &= ~( 1 << WGM33 );  // turn off WGM33
+	TCCR3B |= ( 1 << WGM32 );  // turn on WGM32
+	TCCR3A &= ~( 1 << WGM31 );  // turn off WGM31	
+	TCCR3A &= ~( 1 << WGM30 );  // turn off WGM30
 	
 	// Using pre-scaler 64. This is CS3/2/1/0 = 011
 	TCCR3B &= ~( 1 << CS32 );
 	TCCR3B |= ( 1 << CS31 );
 	TCCR3B |= ( 1 << CS30 );
 
-
 	// Interrupt Frequency: 10 = f_IO / (prescaler*OCR3A)
 	// Set OCR3A appropriately for TOP to generate desired frequency using Y_TIMER_RESOLUTION (100 ms).
 	// NOTE: This is not the toggle frequency, rather a tick frequency used to time toggles.
 	OCR3A = 31250;
-	printf("Initializing yellow clock to freq %dHz (period %d ms)\n",(int)(10),Y_TIMER_RESOLUTION);	
-
+	length = sprintf( tempBuffer, "Initializing yellow clock to freq %dHz (period %d ms)\r\n", (int)(10), Y_TIMER_RESOLUTION );	
+	print_usb( tempBuffer, length );
+	
 	//Enable output compare match interrupt on timer 3A
-	unsigned char sreg = SREG;
-	cli();
 	TCNT3=0; // we want to start off with a zero counter
-	SREG = sreg;
 	TIMSK3 = ( 1<<OCIE3A ); // enable interrupt on TCNT0=OCR0A
 
 	G_yellow_ticks = 0;
 	
-/*
 	//--------------------------- GREEN ----------------------------------//
 	// Set-up of interrupt for toggling green LED. 
 	// This "task" is implemented in hardware, because the OC1A pin will be toggled when 
@@ -94,31 +94,44 @@ void init_timers()
 	// Limits are being placed on the frequency because the frequency of the clock
 	// used to toggle the LED is limited.
 
-	// Using CTC mode with OCR1A for TOP. This is mode XX, thus WGM3/3210 = .
->
+	// Using Fast PWM mode with OCR1A for TOP. This is mode 15, thus WGM3/3210 =  1111.
+	TCCR1B |= ( 1 << WGM13 );  // turn on WGM13.
+	TCCR1B |= ( 1 << WGM12 );  // turn on WGM12
+	TCCR1A |= ( 1 << WGM11 );  // turn on WGM11
+	TCCR1A |= ( 1 << WGM10 );  // turn on WGM10
 
 	// Toggle OC1A on a compare match. Thus COM1A_10 = 01
->
+	TCCR1A &= ~( 1 << COM1A1 );
+	TCCR1A |= ( 1 << COM1A0 );
 	
-	// Using pre-scaler 1024. This is CS1/2/1/0 = XXX
->
-
-	// Interrupt Frequency: ? = f_IO / (1024*OCR1A)
+	// Using pre-scaler 1024. This is CS1/2/1/0 = 101
+	TCCR1B |= ( 1 << CS12 );
+	TCCR1B &= ~( 1 << CS11 );
+	TCCR1B |= ( 1 << CS10 );
+	
+	OCR1A = 1953;
+	
+	// using 1024 for the pre-scaler, we have a scaled frequency of 19531.25 Hz
+	// to make that a nice usable 10Hz (100 ms), we would set top to 1953.125 (or 1953)
+	// if someone wants it to toggle less frequently, say 1000 ms, we would multiply 1953 * (1000/100) = 19530
+	// Interrupt Frequency: OCR1A = ( 1953 * (G_green_period / G_TIMER_RESOLUTION ) )
 	// Set OCR1A appropriately for TOP to generate desired frequency.
 	// NOTE: This IS the toggle frequency.
-	printf("green period %d\n",G_green_period);
->	OCR1A = (uint16_t) (XXXX);
-	printf("Set OCR1A to %d\n",OCR1A);
->	printf("Initializing green clock to freq %dHz (period %d ms)\n",(int)(XXXX),G_green_period);	
-
+	length = sprintf( tempBuffer, "green period %d\r\n", G_green_period );
+	print_usb( tempBuffer, length );
+	OCR1A = (uint16_t) ( 1953 * ( G_green_period / G_TIMER_RESOLUTION ) );
+	length = sprintf( tempBuffer, "Set OCR1A to %d\r\n", OCR1A );
+	print_usb( tempBuffer, length );
+	length = sprintf( tempBuffer, "Initializing green clock to freq %dHz (period %d ms)\r\n", (int)(1), G_green_period );	
+	print_usb( tempBuffer, length );
+	
 	// A match to this will toggle the green LED.
 	// Regardless of its value (provided it is less than OCR1A), it will match at the frequency of timer 1.
-	OCR1B = 1;
+	OCR1B = 100;
 
 	//Enable output compare match interrupt on timer 1B
->
-*/
-
+	TCNT1=0; // we want to start off with a zero counter
+	TIMSK1 = ( 1 << OCIE1B ); // enable interrupt on TCNT1=OCR1B
 }
 
 //INTERRUPT HANDLERS
@@ -142,9 +155,6 @@ ISR( TIMER3_COMPA_vect )
 	// At creation of this file, it was initialized to interrupt every 100ms (10Hz).
 	//
 	
-	char tempBuffer[32];
-	int length = 0;
-	
 	// Increment ticks. If it is time, toggle YELLOW and increment toggle counter.
 	// period is in ms, the ISR is fired once every 100 ms... 
 	if( ( ++G_yellow_ticks % ( G_yellow_period/Y_TIMER_RESOLUTION ) ) == 0 )
@@ -153,23 +163,23 @@ ISR( TIMER3_COMPA_vect )
 		++G_yellow_toggles;
 		
 		lcd_goto_xy( 0, 0 );
+		printf( "y%lu: %lu (%lu)", G_yellow_toggles, G_yellow_ticks, G_green_toggles );
 		
-		length = sprintf( tempBuffer, "y%lu: %lu\r\n", G_yellow_toggles, G_yellow_ticks );
-		print_usb( tempBuffer, length );
-		print( tempBuffer );
+		// char tempBuffer[32];
+		// int length = 0;
+		// length = sprintf( tempBuffer, "y%lu: %lu\r\n", G_yellow_toggles, G_yellow_ticks );
+		// print_usb( tempBuffer, length );
 	}
 
 }
 
-/*
 // INTERRUPT HANDLER for green LED
-> ISR(XXXX) {
-
+ISR( TIMER1_COMPB_vect ) 
+{
 	// This the Interrupt Service Routine for tracking green toggles. The toggling is done in hardware.
 	// Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
 	// This interrupts at the user-specified frequency for the green LED.
 	
-	G_green_toggles++;
+	++G_green_toggles;
 }
 
-*/

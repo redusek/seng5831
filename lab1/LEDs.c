@@ -65,58 +65,64 @@ void init_LEDs()
 
 void set_toggle(char color, int ms) 
 {
-		// check toggle ms is positive and multiple of 100
-		if (ms<0) 
-		{
-			printf("Cannot toggle negative ms.\n");
-			return;
-		}
-
-		if (~((ms%100)==0)) 
-		{
-			ms = ms - (ms%100);
-			printf("Converted to toggle period: %d.\n",ms);
-		}
+	// Used to print to serial comm window
+	char tempBuffer[32];
+	int length = 0;
 		
-		// For each color, if ms is 0, turn it off by changing data direction to input.
-		// If it is >0, set data direction to output.
-		if ((color=='R') || (color=='A')) 
-		{	
-			if (ms==0)
-				DD_REG_RED &= ~(BIT_RED);
-			else
-				DD_REG_RED |= BIT_RED;		
+	// check toggle ms is positive and multiple of 100
+	if (ms<0) 
+	{
+		print_usb( "Cannot toggle negative ms.\r\n" );
+		return;
+	}
+
+	if (~((ms%100)==0)) 
+	{
+		ms = ms - (ms%100);
+		length = sprintf( tempBuffer, "Converted to toggle period: %d.\r\n", ms );
+		print_usb( tempBuffer, length );
+	}
+		
+	// For each color, if ms is 0, turn it off by changing data direction to input.
+	// If it is >0, set data direction to output.
+	if ((color=='R') || (color=='A')) 
+	{	
+		if (ms==0)
+			DD_REG_RED &= ~(BIT_RED);
+		else
+			DD_REG_RED |= BIT_RED;		
 				
-			G_red_period = ms;
-		}
+		G_red_period = ms;
+	}
 
-		if ((color=='Y') || (color=='A')) 
-		{
-			if (ms==0)
-				DD_REG_YELLOW &= ~(BIT_YELLOW);
-			else
-				DD_REG_YELLOW |= BIT_YELLOW;
-			G_yellow_period = ms;
-		}
+	if ((color=='Y') || (color=='A')) 
+	{
+		if (ms==0)
+			DD_REG_YELLOW &= ~(BIT_YELLOW);
+		else
+			DD_REG_YELLOW |= BIT_YELLOW;
+		G_yellow_period = ms;
+	}
 
-		if ((color=='G') || (color=='A')) {
-			if (ms==0)
-				DD_REG_GREEN &= ~(BIT_GREEN);
-			else
-				DD_REG_GREEN |= BIT_GREEN;	
+	if ((color=='G') || (color=='A')) {
+		if (ms==0)
+			DD_REG_GREEN &= ~(BIT_GREEN);
+		else
+			DD_REG_GREEN |= BIT_GREEN;	
 
-			// green has a limit on its period.
-			if ( ms > 4000) ms = 4000;
-			G_green_period = ms;
+		// green has a limit on its period.
+		if ( ms > 4000) ms = 4000;
+		G_green_period = ms;
 			
-			// set the OCR1A (TOP) to get (approximately) the requested frequency.
-			if ( ms > 0 ) 
-			{
-				// TODO -- set OCR1A appropriately and set Hz properly for green in printf
-				// OCR1A = 
-				printf("Green to toggle at freq %dHz (period %d ms)\n", (G_green_period / 1000) ,G_green_period);	
-			}
- 		}
+		// set the OCR1A (TOP) to get (approximately) the requested frequency.
+		if ( ms > 0 ) 
+		{
+			// TODO -- set OCR1A appropriately and set Hz properly for green in printf
+			OCR1A = (uint16_t) ( 1953 * ( G_green_period / G_TIMER_RESOLUTION ) );
+			length = sprintf( tempBuffer, "Green to toggle at freq %dHz (period %d ms)\r\n", (1000 / G_green_period ) ,G_green_period);	
+			print_usb( tempBuffer, length );
+		}
+ 	}
 }
 
 

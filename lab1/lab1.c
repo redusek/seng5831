@@ -68,29 +68,30 @@ int main(void)
 	// Initialization here.
 	lcd_init_printf();	// required if we want to use printf() for LCD printing
 	
+	print_usb( "boot\r\n", 6 );
+	
 	lcd_goto_xy( 0, 0 );
-	print( "init led" );
 	init_LEDs();
-	delay_ms( 500 );
 
+	print_usb( "led\r\n", 5 );
+	
 	lcd_goto_xy( 0, 0 );
 	print( "init timers" );
-	delay_ms( 500 );
 	init_timers();
-	delay_ms( 500 );
-	
+
+	print_usb( "timers\r\n", 8 );
+
 	lcd_goto_xy( 0, 0 );
 	print( "init menu" );
 	init_menu();
-	delay_ms( 500 );
-
+	
+	print_usb( "menu\r\n", 6 );
+	
 	clear();
 	print( "enable int" );
-	delay_ms( 500 );
 	sei();
 
 	clear();
-	print( "Event loop" );
 	
 	while (1) 
 	{
@@ -132,19 +133,17 @@ int main(void)
 			G_release_red = 0;
 			
 			lcd_goto_xy( 0, 1 );
+			printf( "r%lu: %lu", G_red_toggles, G_ms_ticks );
 			
-			length = sprintf( tempBuffer, "r%lu: %lu\r\n", G_red_toggles, G_ms_ticks );
-			print_usb( tempBuffer, length );
-			print( tempBuffer );
-		
+			// length = sprintf( tempBuffer, "r%lu: %lu\r\n", G_red_toggles, G_ms_ticks );
+			// print_usb( tempBuffer, length );
 		}
 
 		// Whenever you are ready, add in the menu task.
 		// Think of this as an external interrupt "releasing" the task.
-/*
-		serial_check();
-		check_for_new_bytes_received();
-*/
+
+		//serial_check();
+		//check_for_new_bytes_received();
 					
 	} //end while loop
 } //end main
