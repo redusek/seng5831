@@ -9,9 +9,10 @@
 #include <inttypes.h> //gives us uintX_t
 
 // number of empty for loops to eat up about 1 ms
-#define FOR_COUNT_10MS 
+// verified that this is one second using ISR for red led 
+#define FOR_COUNT_10MS 5280
 
-uint32_t __ii;
+volatile uint32_t __ii;
 
 #define WAIT_10MS {for (__ii=0;__ii<FOR_COUNT_10MS; __ii++);}
 

@@ -23,22 +23,38 @@ extern uint32_t G_yellow_toggles;
 void init_LEDs() {
 
 	int i;
-
+	
 	// Clear all data direction ports
->
+	DD_REG_RED &= ~(BIT_RED);
+	DD_REG_YELLOW &= ~(BIT_YELLOW);
+	DD_REG_GREEN &= ~(BIT_GREEN);
 
 	// Configure data direction as output
->
+	DD_REG_RED |= BIT_RED;
+	DD_REG_YELLOW |= BIT_YELLOW;
+	DD_REG_GREEN |= BIT_GREEN;
 
 	// Turn LEDs on to make sure they are working
->
+	LED_ON(RED);
+	LED_ON(YELLOW);
+	LED_ON(GREEN);
+
+	clear();
+	lcd_goto_xy( 0, 0 );
+	print("on");
 
 	// leave on for 2 seconds
 	for (i=0;i<200;i++)
 		WAIT_10MS;
 
 	// Start all LEDs off
->
+	LED_OFF(RED);
+	LED_OFF(YELLOW);
+	LED_OFF(GREEN);
+
+
+	lcd_goto_xy( 0, 1 );
+	print("off");
 
 	// clear toggle counters
 	G_green_toggles = 0;
@@ -98,31 +114,4 @@ void set_toggle(char color, int ms) {
 }
 */
 
-/* 
-// INTERRUPT Names are defined in iom1284p.h
 
-// INTERRUPT HANDLER for yellow LED
-> ISR(XXXX) {
-
-	// This the Interrupt Service Routine for Toggling the yellow LED.
-	// Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
-	// At creation of this file, it was initialized to interrupt every 100ms (10Hz).
-	//
-	// Increment ticks. If it is time, toggle YELLOW and increment toggle counter.
->
->
->
-
-}
-
-// INTERRUPT HANDLER for green LED
-> ISR(XXXX) {
-
-	// This the Interrupt Service Routine for tracking green toggles. The toggling is done in hardware.
-	// Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
-	// This interrupts at the user-specified frequency for the green LED.
-	
-	G_green_toggles++;
-}
-
-*/

@@ -14,8 +14,8 @@ extern uint16_t G_yellow_period;
 
 extern uint16_t G_release_red;
 
-void init_timers() {
-/*
+void init_timers() 
+{
 	// -------------------------  RED --------------------------------------//
 	// Software Clock Using Timer/Counter 0.
 	// THE ISR for this is below.
@@ -23,22 +23,27 @@ void init_timers() {
 	// SET appropriate bits in TCCR....
 
 	// Using CTC mode with OCR0 for TOP. This is mode X, thus WGM0/1/0 = .
->
+	TCCR0A |= ( 1 << WGM01 );  // turn on WGM01
+	TCCR0A &= ~( 1 << WGM00 );  // turn off WGM00
+	TCCR0B &= ~( 1 << WGM02 );  // turn off WGM02
 	
-	// Using pre-scaler XX. This is CS0/2/1/0 = 
->
+	// Using pre-scaler XX. This is CS0/2/1/0 =
+	TCCR0B |= ( 1 << CS02 );
+	TCCR0B &= ~( 1 << CS01 );
+	TCCR0B &= ~( 1 << CS00 );
 	
 	// Software Clock Interrupt Frequency: 1000 = f_IO / (prescaler*OCR0)
 	// Set OCR0 appropriately for TOP to generate desired frequency of 1KHz
-	printf("Initializing software clock to freq 1000Hz (period 1 ms)\n");	
->	OCR0 = ;
+	printf("Initializing software clock to freq 1000Hz (period 1 ms)\n");
+	OCR0A = 78;  // we want 1000 ticks per second
 
 	//Enable output compare match interrupt on timer 0A
->
+	TCNT0=0; // we want to start off with a zero counter
+	TIMSK0 = ( 1<<OCIE0A ); // enable interrupt on TCNT0=OCR0A
 
 	// Initialize counter
 	G_ms_ticks = 0;
-*/
+	
 
 	//--------------------------- YELLOW ----------------------------------//
 	// Set-up of interrupt for toggling yellow LEDs. 
@@ -106,18 +111,42 @@ void init_timers() {
 
 }
 
-/*
 //INTERRUPT HANDLERS
-> ISR(XXXX) {
-
-	// This is the Interrupt Service Routine for Timer0 (10ms clock used for scheduling red).
+ISR( TIMER0_COMPA_vect )
+{
+	// This is the Interrupt Service Routine for Timer0
 	// Each time the TCNT count is equal to the OCR0 register, this interrupt is "fired".
 
-	// Increment ticks
-	G_ms_ticks++;
-
 	// if time to toggle the RED LED, set flag to release
-	if ( ( G_ms_ticks % G_red_period ) == 0 )
+	if ( ( ++G_ms_ticks % G_red_period ) == 0 )
 		G_release_red = 1;
 }
+
+/* 
+// INTERRUPT Names are defined in iom1284p.h
+
+// INTERRUPT HANDLER for yellow LED
+> ISR(XXXX) {
+
+	// This the Interrupt Service Routine for Toggling the yellow LED.
+	// Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
+	// At creation of this file, it was initialized to interrupt every 100ms (10Hz).
+	//
+	// Increment ticks. If it is time, toggle YELLOW and increment toggle counter.
+>
+>
+>
+
+}
+
+// INTERRUPT HANDLER for green LED
+> ISR(XXXX) {
+
+	// This the Interrupt Service Routine for tracking green toggles. The toggling is done in hardware.
+	// Each time the TCNT count is equal to the OCRxx register, this interrupt is enabled.
+	// This interrupts at the user-specified frequency for the green LED.
+	
+	G_green_toggles++;
+}
+
 */

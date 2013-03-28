@@ -32,7 +32,8 @@ volatile uint32_t G_yellow_toggles = 0;
 
 volatile uint8_t G_flag = 0; // generic flag for debugging
 
-int main(void) {
+int main(void) 
+{
 	// -------------------------------------------------------------
 	// This program teaches you about the various ways to "schedule" tasks.
 	// You can think of the three blinking LEDs as separate tasks with 
@@ -59,49 +60,80 @@ int main(void) {
 	// --------------------------------------------------------------
 
 	int i;
-
+	
 	// Used to print to serial comm window
 	char tempBuffer[32];
 	int length = 0;
 	
 	// Initialization here.
 	lcd_init_printf();	// required if we want to use printf() for LCD printing
+	
+	lcd_goto_xy( 0, 0 );
+	print( "init led" );
 	init_LEDs();
-	init_timers();
-	init_menu();	// this is initialization of serial comm through USB
-	
-	clear();	// clear the LCD
+	delay_ms( 500 );
 
-	//enable interrupts
-	sei();
+	lcd_goto_xy( 0, 0 );
+	print( "init timers" );
+	delay_ms( 500 );
+	init_timers();
+	delay_ms( 500 );
 	
-	while (1) {
+	lcd_goto_xy( 0, 0 );
+	print( "init menu" );
+	init_menu();
+	delay_ms( 500 );
+
+	clear();
+	print( "enable int" );
+	delay_ms( 500 );
+	sei();
+
+	clear();
+	print( "Event loop" );
+	
+	while (1) 
+	{
 		/* BEGIN with a simple toggle using for-loops. No interrupt timers */
 
+		/******** Bob Dusek - Got this working with 5289 loop for WAIT_10MS, see timer.h ********
+		
 		// toggle the LED. Increment a counter.
 		LED_TOGGLE(RED);
-		G_red_toggles++;
-		length = sprintf( tempBuffer, "R toggles %d\r\n", G_red_toggles );
-		print_usb( tempBuffer, length );
-#ifdef ECHO2LCD
-		lcd_goto_xy(0,0);
-		printf("R:%d ",G_red_toggles);
-#endif
+		++G_red_toggles;
 
 		// create a for-loop to kill approximately 1 second
-		for (i=0;i<100;i++) {
+		uint32_t before = G_ms_ticks;
+		for (i=0;i<100;i++) 
+		{
 			WAIT_10MS;
 		}
-				
+		uint32_t after = G_ms_ticks;
+
+		uint32_t elapsed = after - before;
+
+		lcd_goto_xy( 0, 1 );
+		printf( "t%d: %d", G_red_toggles, elapsed );
+		length = sprintf( tempBuffer, "t%d: %d\r\n", G_red_toggles, elapsed );
+		print_usb( tempBuffer, length );
+		
+		*/
+
 		// ONCE THAT WORKS, Comment out the above and use a software timer
 		//	to "schedule" the RED LED toggle.
-/*
-		if (G_release_red) {
+
+		if ( G_release_red ) 
+		{
 			LED_TOGGLE(RED);
 			G_red_toggles++;
-			G_release_red = 0; 
+			G_release_red = 0;
+			
+			lcd_goto_xy( 0, 1 );
+			printf( "t%d: %d", G_red_toggles, G_ms_ticks );
+			length = sprintf( tempBuffer, "t%d: %d\r\n", G_red_toggles, G_ms_ticks );
+			print_usb( tempBuffer, length );
+		
 		}
-*/
 
 		// Whenever you are ready, add in the menu task.
 		// Think of this as an external interrupt "releasing" the task.
