@@ -66,7 +66,7 @@ void init_LEDs()
 void set_toggle(char color, int ms) 
 {
 	// Used to print to serial comm window
-	char tempBuffer[32];
+	char tempBuffer[128];
 	int length = 0;
 		
 	// check toggle ms is positive and multiple of 100
@@ -111,7 +111,11 @@ void set_toggle(char color, int ms)
 			DD_REG_GREEN |= BIT_GREEN;	
 
 		// green has a limit on its period.
-		if ( ms > 4000) ms = 4000;
+		if ( ms > 4000) 
+		{
+			ms = 4000;
+		}
+					
 		G_green_period = ms;
 			
 		// set the OCR1A (TOP) to get (approximately) the requested frequency.

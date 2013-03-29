@@ -142,8 +142,8 @@ int main(void)
 		// Whenever you are ready, add in the menu task.
 		// Think of this as an external interrupt "releasing" the task.
 
-		//serial_check();
-		//check_for_new_bytes_received();
+		serial_check();
+		check_for_new_bytes_received();
 					
 	} //end while loop
 } //end main

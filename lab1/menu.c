@@ -96,19 +96,19 @@ void process_received_string(const char* buffer)
 		case 'p':
 			switch(color) {
 				case 'R': 
-					length = sprintf( tempBuffer, "R toggles: %d\r\n", G_red_toggles );
+					length = sprintf( tempBuffer, "R toggles: %lu\r\n", G_red_toggles );
 					print_usb( tempBuffer, length ); 
 					break;
 				case 'G': 
-					length = sprintf( tempBuffer, "G toggles: %d\r\n", G_green_toggles );
+					length = sprintf( tempBuffer, "G toggles: %lu\r\n", G_green_toggles );
 					print_usb( tempBuffer, length ); 
 					break;
 				case 'Y': 
-					length = sprintf( tempBuffer, "Y toggles: %d\r\n", G_yellow_toggles );
+					length = sprintf( tempBuffer, "Y toggles: %lu\r\n", G_yellow_toggles );
 					print_usb( tempBuffer, length ); 
 					break;
 				case 'A': 
-					length = sprintf( tempBuffer, "Toggles R:%d G:%d Y:%d\r\n", G_red_toggles, G_green_toggles, G_yellow_toggles );
+					length = sprintf( tempBuffer, "Toggles R:%lu G:%lu Y:%lu\r\n", G_red_toggles, G_green_toggles, G_yellow_toggles );
 					print_usb( tempBuffer, length ); 
 					break;
 				default: print_usb("Default in p(color). How?\r\n", 27 );
@@ -152,8 +152,11 @@ void check_for_new_bytes_received()
 	The menuBuffer is used to hold all keystrokes prior to the carriage return. The "received" variable, which indexes menuBuffer, is reset to 0
 	after each carriage return.
 	*/ 
-	char menuBuffer[32];
+	static char menuBuffer[32];
 	static int received = 0;
+	int length = 0;
+	char tempBuffer[128];
+	int count = 0;
 	
 	// while there are unprocessed keystrokes in the receive_buffer, grab them and buffer
 	// them into the menuBuffer
@@ -161,7 +164,6 @@ void check_for_new_bytes_received()
 	{
 		// place in a buffer for processing
 		menuBuffer[received] = receive_buffer[receive_buffer_position];
-		++received;
 		
 		// Increment receive_buffer_position, but wrap around when it gets to
 		// the end of the buffer. 
@@ -173,29 +175,50 @@ void check_for_new_bytes_received()
 		{
 			receive_buffer_position++;
 		}
-	}
-	// If there were keystrokes processed, check if a menue command
-	if (received) {
-		// if only 1 received, it was MOST LIKELY a carriage return. 
-		// Even if it was a single keystroke, it is not a menu command, so ignore it.
-		if ( 1 == received ) {
-			received = 0;
-			return;
+		
+		++count;
+		
+		if( menuBuffer[received++] == '\r')
+		{
+			print_usb( "!\r\n", 3 );
+			break;
 		}
-		// Process buffer: terminate string, process, reset index to beginning of array to receive another command
-		menuBuffer[received] = '\0';
-#ifdef ECHO2LCD
-		lcd_goto_xy(0,1);			
-		print("RX: (");
-		print_long(received);
-		print_character(')');
+		
+		print_usb( ".", 1 );
+	}
+	
+	if( count ) 
+	{
 		for (int i=0; i<received; i++)
 		{
-			print_character(menuBuffer[i]);
-		}
+			length = sprintf( tempBuffer, "%c", menuBuffer[i] );
+			print_usb( tempBuffer, length );
+		}	
+	}
+	
+	// If there were keystrokes processed, check if a menu command
+	if (received > 2) 
+	{		
+		char lastChar = menuBuffer[ (received - 1) ];
+		
+		if( lastChar == '\r' )
+		{
+			// Process buffer: terminate string, process, reset index to beginning of array to receive another command
+			menuBuffer[ (received - 1) ] = '\0';  // overwrite the new line
+			
+#ifdef ECHO2LCD
+			lcd_goto_xy(0,1);			
+			print("RX: (");
+			print_long(received);
+			print_character(')');
+			for (int i=0; i<received; i++)
+			{
+				print_character(menuBuffer[i]);
+			}
 #endif
-		process_received_string(menuBuffer);
-		received = 0;
+			process_received_string(menuBuffer);
+			received = 0;
+		}		
 	}
 }
 	

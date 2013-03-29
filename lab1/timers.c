@@ -127,7 +127,7 @@ void init_timers()
 	
 	// A match to this will toggle the green LED.
 	// Regardless of its value (provided it is less than OCR1A), it will match at the frequency of timer 1.
-	OCR1B = 100;
+	OCR1B = 1;
 
 	//Enable output compare match interrupt on timer 1B
 	TCNT1=0; // we want to start off with a zero counter
