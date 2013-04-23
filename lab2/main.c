@@ -11,24 +11,24 @@
 #include <pololu/orangutan.h>
 #include <inttypes.h>
 
-volatile uint32_t g_reference_degrees_full = 0;
-volatile uint32_t g_reference_count_full = 0;
-volatile uint32_t g_reference_count = 0;
-volatile uint32_t g_controller_ticks = 0;
-volatile uint32_t g_interpolator_ticks = 0;
-volatile int g_Kp = 24;
-volatile int g_Kd = 1;
-volatile int g_count_step = 16;  // max error in Pd controller
+volatile int32_t g_reference_degrees_full = 0;
+volatile int32_t g_reference_count_full = 0;
+volatile int32_t g_reference_count = 0;
+volatile int32_t g_controller_ticks = 0;
+volatile int32_t g_int32_terpolator_ticks = 0;
+volatile int32_t g_Kp = 24;
+volatile int32_t g_Kd = 1;
+volatile int32_t g_count_step = 16;  // max error in Pd controller
 // g_count_step * DEGREES_PER_COUNT / NORMALIZER == max degrees
 
 #include "timers.h"
 #include "motors.h"
 #include "menu.h"
 
-int main()
+int32_t main()
 {
-	char printbuffer[64];
-	int printlen = 0;
+	char printbuffer[128];
+	int32_t printlen = 0;
 	
 	print_usb( "BOOTBOOTBOOTBOOTBOOTBOOTBOOTBOOTBOOT\r\n", 38 );
 	print_usb( "BOOTBOOTBOOTBOOTBOOTBOOTBOOTBOOTBOOT\r\n", 38 );
@@ -41,24 +41,24 @@ int main()
 	g_reference_degrees_full = 720;
 	g_reference_count_full = ( g_reference_degrees_full * NORMALIZER ) / DEGREES_PER_COUNT;
 	
-	int count = 0; 
-	int errors = 0;
-	int modifier = -1;
+	int32_t count = 0; 
+	int32_t errors = 0;
+	int32_t modifier = -1;
 	
-	uint32_t measured_count = 0;
-	uint32_t measured_degrees = 0;
-	uint32_t relative_degrees = 0;
+	int32_t measured_count = 0;
+	int32_t measured_degrees = 0;
+	int32_t relative_degrees = 0;
 	
 	encoders_init( IO_A4, IO_A5, IO_A6, IO_A7 );
 	encoders_get_counts_and_reset_m2();
 	
-	printlen = sprintf( printbuffer, "1:%d/%"PRIu32"/%"PRIu32"\r\n", measured_count, g_reference_count, g_reference_count_full );
+	printlen = sprintf( printbuffer, "1:%ld/%ld/%ld\r\n", measured_count, g_reference_count, g_reference_count_full );
 	print_usb( printbuffer, printlen );
 	
 	init_timers();
 	init_motor();
 	
-	printlen = sprintf( printbuffer, "2:%d/%"PRIu32"/%"PRIu32"\r\n", measured_count, g_reference_count, g_reference_count_full );
+	printlen = sprintf( printbuffer, "2:%ld/%ld/%ld\r\n", measured_count, g_reference_count, g_reference_count_full );
 	print_usb( printbuffer, printlen );
 	
 	while(1)
@@ -66,12 +66,12 @@ int main()
 		lcd_goto_xy(0, 0);
 		measured_count = encoders_get_counts_m2();
 		measured_degrees = ( measured_count * DEGREES_PER_COUNT ) / NORMALIZER;	
-		printlen = sprintf( printbuffer, "C%d/%"PRIu32"/%"PRIu32"\r\n", measured_count, g_reference_count, g_reference_count_full );
+		printlen = sprintf( printbuffer, "C%ld/%ld/%ld\r\n", measured_count, g_reference_count, g_reference_count_full );
 		// print( printbuffer );
 		print_usb( printbuffer, printlen );
 		
 		lcd_goto_xy(0, 1);
-		printlen = sprintf( printbuffer, "D%"PRIu32"/%"PRIu32"/%"PRIu32"\r\n", measured_degrees, ( ( g_reference_count * DEGREES_PER_COUNT ) / NORMALIZER ), g_reference_degrees_full );
+		printlen = sprintf( printbuffer, "D%ld/%ld/%ld\r\n", measured_degrees, ( ( g_reference_count * DEGREES_PER_COUNT ) / NORMALIZER ), g_reference_degrees_full );
 		// print( printbuffer );
 		print_usb( printbuffer, printlen );
 		

@@ -12,7 +12,7 @@ char send_buffer[32];
 // A generic function for whenever you want to print to your serial comm window.
 // Provide a string and the length of that string. My serial comm likes "\r\n" at 
 // the end of each string (be sure to include in length) for proper linefeed.
-void print_usb( char *buffer, int n ) 
+void print_usb( char *buffer, int32_t n ) 
 {
 	serial_send( USB_COMM, buffer, n );
 	wait_for_sending_to_finish();
@@ -48,14 +48,14 @@ void init_menu()
 void process_received_string(const char* buffer)
 {
 	// Used to pass to USB_COMM for serial communication
-	int length;
+	int32_t length;
 	char tempBuffer[32];
 	
 	// parse and echo back to serial comm window (and optionally the LCD)
 	char color;
 	char op_char;
-	int value;
-	int parsed;
+	int32_t value;
+	int32_t parsed;
 	parsed = sscanf(buffer, "%c %c %d", &op_char, &color, &value);
 #ifdef ECHO2LCD
 	lcd_goto_xy(0,0);
@@ -89,13 +89,13 @@ void check_for_new_bytes_received()
 	after each carriage return.
 	*/ 
 	static char menuBuffer[32];
-	static int received = 0;
-	int length = 0;
+	static int32_t received = 0;
+	int32_t length = 0;
 	char tempBuffer[128];
-	int count = 0;
+	int32_t count = 0;
 	
 	// while there are unprocessed keystrokes in the receive_buffer, grab them and buffer
-	// them into the menuBuffer
+	// them int32_to the menuBuffer
 	while(serial_get_received_bytes(USB_COMM) != receive_buffer_position)
 	{
 		// place in a buffer for processing
@@ -125,7 +125,7 @@ void check_for_new_bytes_received()
 	
 	if( count ) 
 	{
-		for (int i=0; i<received; i++)
+		for (int32_t i=0; i<received; i++)
 		{
 			length = sprintf( tempBuffer, "%c", menuBuffer[i] );
 			print_usb( tempBuffer, length );
@@ -147,7 +147,7 @@ void check_for_new_bytes_received()
 			print("RX: (");
 			print_long(received);
 			print_character(')');
-			for (int i=0; i<received; i++)
+			for (int32_t i=0; i<received; i++)
 			{
 				print_character(menuBuffer[i]);
 			}

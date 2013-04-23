@@ -9,14 +9,14 @@
 #ifndef TIMERS_H_
 #define TIMERS_H_
 
-#include <inttypes.h> //gives us uintX_t
+#include <inttypes.h> //gives us int32_tX_t
 
-#define INTERPOLATOR_TIMER_RESOLUTION 10
+#define int32_tERPOLATOR_TIMER_RESOLUTION 10
 #define CONTROLLER_TIMER_RESOLUTION 1
 #define NORMALIZER 1000
 #define DEGREES_PER_COUNT 5625
 
 void init_timers();
-int abs(int);
+int32_t abs(int32_t);
 
 #endif /* TIMERS_H_ */

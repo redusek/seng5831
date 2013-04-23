@@ -8,7 +8,7 @@
 
 #include <pololu/orangutan.h>  
 
-#define MENU "\rMenu: {TPZ} {RGYA} <int>: "
+#define MENU "\rMenu: {TPZ} {RGYA} <int32_t>: "
 #define MENU_LENGTH 27
 
 /* This is a customization of the serial2 example from the Pololu library examples. (ACL)
@@ -48,6 +48,6 @@ void init_menu();
 // A generic function for whenever you want to print to your serial comm window.
 // Provide a string and the length of that string. My serial comm likes "\r\n" at 
 // the end of each string (be sure to include in length) for proper linefeed.
-void print_usb(char*,int);
+void print_usb(char*,int32_t);
 
 #endif //__MENU_H
