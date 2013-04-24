@@ -15,7 +15,7 @@ volatile int32_t g_reference_degrees_full = 0;
 volatile int32_t g_reference_count_full = 0;
 volatile int32_t g_reference_count = 0;
 volatile int32_t g_controller_ticks = 0;
-volatile int32_t g_int32_terpolator_ticks = 0;
+volatile int32_t g_interpolator_ticks = 0;
 volatile int32_t g_Kp = 24;
 volatile int32_t g_Kd = 1;
 volatile int32_t g_count_step = 16;  // max error in Pd controller
@@ -63,21 +63,24 @@ int32_t main()
 	
 	while(1)
 	{
-		lcd_goto_xy(0, 0);
 		measured_count = encoders_get_counts_m2();
 		measured_degrees = ( measured_count * DEGREES_PER_COUNT ) / NORMALIZER;	
+		
+		lcd_goto_xy(0, 0);
+		printf( printbuffer, "C%ld/%ld/%ld", measured_count, g_reference_count, g_reference_count_full );
 		printlen = sprintf( printbuffer, "C%ld/%ld/%ld\r\n", measured_count, g_reference_count, g_reference_count_full );
 		// print( printbuffer );
 		print_usb( printbuffer, printlen );
 		
 		lcd_goto_xy(0, 1);
+		printf( "D%ld/%ld/%ld", measured_degrees, ( ( g_reference_count * DEGREES_PER_COUNT ) / NORMALIZER ), g_reference_degrees_full );	
 		printlen = sprintf( printbuffer, "D%ld/%ld/%ld\r\n", measured_degrees, ( ( g_reference_count * DEGREES_PER_COUNT ) / NORMALIZER ), g_reference_degrees_full );
 		// print( printbuffer );
 		print_usb( printbuffer, printlen );
 		
 		// print_long( OCR2B );
 		
-		delay_ms( 250 );	
+		delay_ms( 1000 );	
 	}
 }
 

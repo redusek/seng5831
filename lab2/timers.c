@@ -12,21 +12,21 @@
 #include "motors.h"
 #include "menu.h"
 
-extern volatile g_reference_count;
-extern volatile g_reference_count_full;
-extern volatile g_reference_direction;
-extern volatile g_reference_degrees_full;
-extern volatile g_controller_ticks;
-extern volatile g_int32_terpolator_ticks;
-extern volatile g_Kp;
-extern volatile g_Kd;
-extern volatile g_count_step;
+extern volatile uint32_t g_reference_count;
+extern volatile uint32_t g_reference_count_full;
+extern volatile uint32_t g_reference_direction;
+extern volatile uint32_t g_reference_degrees_full;
+extern volatile uint32_t g_controller_ticks;
+extern volatile uint32_t g_interpolator_ticks;
+extern volatile uint32_t g_Kp;
+extern volatile uint32_t g_Kd;
+extern volatile uint32_t g_count_step;
 	
 void init_timers () 
 {
 	init_pwm_timer();
 	init_controller_timer();
-	init_int32_terpolator_timer();
+	init_interpolator_timer();
 }
 
 void init_pwm_timer()
@@ -76,7 +76,7 @@ void  init_controller_timer()
 }
 
 
-void init_int32_terpolator_timer()
+void init_interpolator_timer()
 {
 	// Using CTC mode with OCR3A for TOP. This is mode 4, thus WGM3/3210 = 0100.
 	TCCR3B &= ~( 1 << WGM33 );  // turn off WGM33
@@ -111,6 +111,8 @@ ISR( TIMER1_COMPA_vect )
 	static char printbuffer[128];	
 
 	int32_t torque;
+	int32_t error;
+	int velocity;
 	int32_t measured_count = encoders_get_counts_m2();
 	
 	// if the motor is in position, set velocity to zero
@@ -118,27 +120,28 @@ ISR( TIMER1_COMPA_vect )
 	{
 		if( prev_torque != 0 )
 		{
-			printlen = sprintf( printbuffer, "DESTINATIONDESTINATIONDESTINATIONDESTINATIONDESTINATION\r\n" );
+			printlen = sprintf( printbuffer, "DESTINATION\r\n" );
 			print_usb( printbuffer, printlen );
 		}		
 		
+		error = 0;
+		velocity = 0;
 		torque = 0;
 		OCR2B = 0;
-		prev_torque = 0;
 	}
 	else 
 	{		
 		// determine velocity based on error and velocity
-		int32_t error = abs( g_reference_count - measured_count );
-		int velocity = velocity_table[ prev_torque / 16 ];	// velocity is strictly a function of torque here
+		error = abs( g_reference_count - measured_count );
+		velocity = velocity_table[ prev_torque / 16 ];	// velocity is strictly a function of torque here
 		torque = ( g_Kp * error ) - ( g_Kd * velocity );
 		
  		if( g_controller_ticks % 250 ) 
 		{
-			printlen = sprintf( printbuffer, "CONTROL:e%ld:v%d:t%ld\r\n", error, velocity, torque );
-			print_usb( printbuffer, printlen );	
-			printlen = sprintf( printbuffer, "CONTROL:m%ld:r%ld:rf%ld\r\n", measured_count, g_reference_count, g_reference_count_full );
-			print_usb( printbuffer, printlen );
+			// printlen = sprintf( printbuffer, "CONTROL:e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
+			// print_usb( printbuffer, printlen );	
+			// printlen = sprintf( printbuffer, "CONTROL:m%ld:r%ld:rf%ld\r\n", measured_count, g_reference_count, g_reference_count_full );
+			// print_usb( printbuffer, printlen );
 			
 		}
 		
@@ -160,11 +163,14 @@ ISR( TIMER1_COMPA_vect )
 		}
 		
 		OCR2B = torque; // set speed
-		prev_torque = torque;
 	}	
 	
-	if( g_controller_ticks % 1000 ) 
+	prev_torque = torque;
+	
+	if( g_controller_ticks % 250 == 0 ) 
 	{
+		printlen = sprintf( printbuffer, "CTRL:e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
+		print_usb( printbuffer, printlen );
 		g_controller_ticks = 0;  // reset it to prevent overflow
 	}
 }
@@ -172,7 +178,7 @@ ISR( TIMER1_COMPA_vect )
 // int32_tERRUPT HANDLER for int32_terpolator
 ISR( TIMER3_COMPA_vect )
 {
-	++g_int32_terpolator_ticks;
+	++g_interpolator_ticks;
 
 	int32_t printlen;
 	char printbuffer[128];
@@ -180,7 +186,7 @@ ISR( TIMER3_COMPA_vect )
 	int32_t measured = encoders_get_counts_m2();
 	int32_t difference = abs( g_reference_count_full - measured );
 	
-	if( g_int32_terpolator_ticks % 25 == 0 )
+	if( g_interpolator_ticks % 25 == 0 )
 	{
 		printlen = sprintf( printbuffer, "int32_t1:m%ld:d%ld:s%ld\r\n", measured, difference, g_count_step );
 		print_usb( printbuffer, printlen );
@@ -201,15 +207,15 @@ ISR( TIMER3_COMPA_vect )
 		g_reference_count = measured + g_count_step;
 	}	
 	
- 	if( g_int32_terpolator_ticks % 25 == 0 )
+ 	if( g_interpolator_ticks % 25 == 0 )
  	{
 		printlen = sprintf( printbuffer, "INT2:grc=%ld\r\n", g_reference_count );
 		print_usb( printbuffer, printlen );
 	 }
 	 
-	 if( g_int32_terpolator_ticks % 100 == 0 )
+	 if( g_interpolator_ticks % 100 == 0 )
 	 {		
- 		g_int32_terpolator_ticks = 0;
+ 		g_interpolator_ticks = 0;
  	}
 }
 
