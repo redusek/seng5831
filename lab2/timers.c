@@ -99,7 +99,7 @@ void init_interpolator_timer()
 	TIMSK3 = ( 1<<OCIE3A );  // enable the int32_terrupt
 }
 
-// int32_tERRUPT HANDLER for PD controller
+// INTERRUPT HANDLER for PD controller
 ISR( TIMER1_COMPA_vect )
 {
 	++g_controller_ticks;
@@ -136,19 +136,25 @@ ISR( TIMER1_COMPA_vect )
 		velocity = velocity_table[ prev_torque / 16 ];	// velocity is strictly a function of torque here
 		torque = ( g_Kp * error ) - ( g_Kd * velocity );
 		
- 		if( g_controller_ticks % 250 ) 
-		{
-			// printlen = sprintf( printbuffer, "CONTROL:e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
-			// print_usb( printbuffer, printlen );	
-			// printlen = sprintf( printbuffer, "CONTROL:m%ld:r%ld:rf%ld\r\n", measured_count, g_reference_count, g_reference_count_full );
-			// print_usb( printbuffer, printlen );
-			
-		}
+//  		if( g_controller_ticks % 250 ) 
+// 		{
+// 			// printlen = sprintf( printbuffer, "CONTROL:e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
+// 			// print_usb( printbuffer, printlen );	
+// 			// printlen = sprintf( printbuffer, "CONTROL:m%ld:r%ld:rf%ld\r\n", measured_count, g_reference_count, g_reference_count_full );
+// 			// print_usb( printbuffer, printlen );
+// 			
+// 		}
 		
 		if( torque > 255 ) 
 		{
 			torque = 255; 
 		}
+		
+		if( prev_torque != torque )
+		{
+			printlen = sprintf( printbuffer, "CTRL e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
+			print_usb( printbuffer, printlen );
+		}			
 					
 		// make sure the motor is spinning in the right direction (may depend on motor connection)
 		if( g_reference_count > measured_count )
@@ -169,26 +175,27 @@ ISR( TIMER1_COMPA_vect )
 	
 	if( g_controller_ticks % 250 == 0 ) 
 	{
-		printlen = sprintf( printbuffer, "CTRL:e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
-		print_usb( printbuffer, printlen );
+// 		printlen = sprintf( printbuffer, "CTRL:e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
+// 		print_usb( printbuffer, printlen );
 		g_controller_ticks = 0;  // reset it to prevent overflow
 	}
 }
 
-// int32_tERRUPT HANDLER for int32_terpolator
+// INTERRUPT HANDLER for interpolator
 ISR( TIMER3_COMPA_vect )
 {
 	++g_interpolator_ticks;
 
 	int32_t printlen;
 	char printbuffer[128];
+	static int32_t prev_measured = 0;
 	
 	int32_t measured = encoders_get_counts_m2();
 	int32_t difference = abs( g_reference_count_full - measured );
 	
-	if( g_interpolator_ticks % 25 == 0 )
+	if( prev_measured != measured )
 	{
-		printlen = sprintf( printbuffer, "int32_t1:m%ld:d%ld:s%ld\r\n", measured, difference, g_count_step );
+		printlen = sprintf( printbuffer, "REF m%ld:gf%ld\r\n", measured, g_reference_count_full );
 		print_usb( printbuffer, printlen );
  	}
 	
@@ -201,22 +208,35 @@ ISR( TIMER3_COMPA_vect )
 	else if( g_reference_count_full < measured )
 	{
 		g_reference_count = measured - g_count_step;
+		
+		if( prev_measured != measured )
+		{
+			printlen = sprintf( printbuffer, "OVER\r\n" );
+			print_usb( printbuffer, printlen );
+		}			
 	} 
 	else
 	{
 		g_reference_count = measured + g_count_step;
+		if( prev_measured != measured )
+		{
+			printlen = sprintf( printbuffer, "UNDER\r\n" );
+			print_usb( printbuffer, printlen );
+		}
 	}	
 	
- 	if( g_interpolator_ticks % 25 == 0 )
+ 	if( prev_measured != measured )
  	{
-		printlen = sprintf( printbuffer, "INT2:grc=%ld\r\n", g_reference_count );
+		printlen = sprintf( printbuffer, "GRC %ld\r\n", g_reference_count );
 		print_usb( printbuffer, printlen );
-	 }
+	}
 	 
-	 if( g_interpolator_ticks % 100 == 0 )
-	 {		
+	if( g_interpolator_ticks % 100 == 0 )
+	{		
  		g_interpolator_ticks = 0;
- 	}
+	}
+	 
+	prev_measured = measured; 
 }
 
 // http://stackoverflow.com/questions/9772348/get-absolute-value-without-using-abs-function-nor-if-statement
