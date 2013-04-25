@@ -103,58 +103,74 @@ void init_interpolator_timer()
 ISR( TIMER1_COMPA_vect )
 {
 	++g_controller_ticks;
-		
-	// int32_t ( motor_speed / 16 ) = approximate encoder counts per second
-	static int velocity_table[16] = { 0, 7, 17, 27, 37, 47, 56, 65, 74, 83, 89, 97, 102, 110, 117, 121 };
-	static int32_t prev_torque = 0;
+	
 	static int32_t printlen;
-	static char printbuffer[128];	
-
+	static char printbuffer[128];
+	
+	// giving up on the velocity table experiment	
+	//  motor_speed / 16 = approximate encoder counts per second
+	// static int velocity_table[16] = { 0, 7, 17, 27, 37, 47, 56, 65, 74, 83, 89, 97, 102, 110, 117, 121 };
+	
+	static int32_t prev_torque = 0;
+	static int velocity = 0;
 	int32_t torque;
 	int32_t error;
-	int velocity;
 	int32_t measured_count = encoders_get_counts_m2();
+	static int32_t prev_measured_count = 0;
+	static int32_t encoder_counts;
+	
+	if( prev_measured_count != measured_count )
+	{
+		encoder_counts += abs( measured_count - prev_measured_count );
+// 		printlen = sprintf( printbuffer, "M%ldPM%ldT%ldPT%ld\r\n", measured_count, prev_measured_count, torque, prev_torque );
+// 		print_usb( printbuffer, printlen );
+	}
+	
+	if( g_controller_ticks >= 100 )
+	{
+		velocity = encoder_counts;
+		encoder_counts = 0;
+		g_controller_ticks = 0;
+	}
 	
 	// if the motor is in position, set velocity to zero
 	if( measured_count == g_reference_count_full )
-	{
+	{		
+		error = 0;
+		velocity = 0;
+		// encoder_counts = 0;
+		// g_controller_ticks = 0;
+		OCR2B = 0;
+		
 		if( prev_torque != 0 )
 		{
 			printlen = sprintf( printbuffer, "DESTINATION\r\n" );
 			print_usb( printbuffer, printlen );
-		}		
+		}
 		
-		error = 0;
-		velocity = 0;
 		torque = 0;
-		OCR2B = 0;
 	}
 	else 
 	{		
 		// determine velocity based on error and velocity
 		error = abs( g_reference_count - measured_count );
-		velocity = velocity_table[ prev_torque / 16 ];	// velocity is strictly a function of torque here
+		// velocity = velocity_table[ prev_torque / 16 ];	// velocity is strictly a function of torque here
 		torque = ( g_Kp * error ) - ( g_Kd * velocity );
-		
-//  		if( g_controller_ticks % 250 ) 
-// 		{
-// 			// printlen = sprintf( printbuffer, "CONTROL:e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
-// 			// print_usb( printbuffer, printlen );	
-// 			// printlen = sprintf( printbuffer, "CONTROL:m%ld:r%ld:rf%ld\r\n", measured_count, g_reference_count, g_reference_count_full );
-// 			// print_usb( printbuffer, printlen );
-// 			
-// 		}
 		
 		if( torque > 255 ) 
 		{
 			torque = 255; 
 		}
-		
-		if( prev_torque != torque )
+		else if( torque < 0 )
 		{
-			printlen = sprintf( printbuffer, "CTRL e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
-			print_usb( printbuffer, printlen );
-		}			
+			torque = 0;
+		}
+		
+// 		if( prev_measured_count	!= measured_count )
+// 		{
+// 			printlen = sprintf( printbuffer, "CTRL e%ld:v%d:t%ld:pt%ld:m%ld:pm%ld\r\n", error, velocity, torque, prev_torque, measured_count, prev_measured_count );
+// 			print_usb( printbuffer, printlen );
+// 		}			
 					
 		// make sure the motor is spinning in the right direction (may depend on motor connection)
 		if( g_reference_count > measured_count )
@@ -172,20 +188,13 @@ ISR( TIMER1_COMPA_vect )
 	}	
 	
 	prev_torque = torque;
-	
-	if( g_controller_ticks % 250 == 0 ) 
-	{
-// 		printlen = sprintf( printbuffer, "CTRL:e%ld:v%d:t%ld:pt%ld\r\n", error, velocity, torque, prev_torque );
-// 		print_usb( printbuffer, printlen );
-		g_controller_ticks = 0;  // reset it to prevent overflow
-	}
+
+	prev_measured_count = measured_count;
 }
 
 // INTERRUPT HANDLER for interpolator
 ISR( TIMER3_COMPA_vect )
 {
-	++g_interpolator_ticks;
-
 	int32_t printlen;
 	char printbuffer[128];
 	static int32_t prev_measured = 0;
@@ -193,11 +202,11 @@ ISR( TIMER3_COMPA_vect )
 	int32_t measured = encoders_get_counts_m2();
 	int32_t difference = abs( g_reference_count_full - measured );
 	
-	if( prev_measured != measured )
-	{
-		printlen = sprintf( printbuffer, "REF m%ld:gf%ld\r\n", measured, g_reference_count_full );
-		print_usb( printbuffer, printlen );
- 	}
+// 	if( prev_measured != measured )
+// 	{
+// 		printlen = sprintf( printbuffer, "REF m%ld:gf%ld\r\n", measured, g_reference_count_full );
+// 		print_usb( printbuffer, printlen );
+//  	}
 	
 	if( difference <= g_count_step )
 	{
@@ -225,17 +234,12 @@ ISR( TIMER3_COMPA_vect )
 		}
 	}	
 	
- 	if( prev_measured != measured )
- 	{
-		printlen = sprintf( printbuffer, "GRC %ld\r\n", g_reference_count );
-		print_usb( printbuffer, printlen );
-	}
-	 
-	if( g_interpolator_ticks % 100 == 0 )
-	{		
- 		g_interpolator_ticks = 0;
-	}
-	 
+//  	if( prev_measured != measured )
+//  	{
+// 		printlen = sprintf( printbuffer, "GRC %ld\r\n", g_reference_count );
+// 		print_usb( printbuffer, printlen );
+// 	}
+	 	 
 	prev_measured = measured; 
 }
 

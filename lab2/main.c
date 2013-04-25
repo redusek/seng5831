@@ -16,7 +16,10 @@ volatile int32_t g_reference_count_full = 0;
 volatile int32_t g_reference_count = 0;
 volatile int32_t g_controller_ticks = 0;
 volatile int32_t g_interpolator_ticks = 0;
-volatile int32_t g_Kp = 24;
+// this konstant gave a nice slow down for the velocity table
+// however, it's too large for smaller velocity numbers
+// volatile int32_t g_Kp = 24;
+volatile int32_t g_Kp = 16;
 volatile int32_t g_Kd = 1;
 volatile int32_t g_count_step = 16;  // max error in Pd controller
 // g_count_step * DEGREES_PER_COUNT / NORMALIZER == max degrees
